@@ -5,12 +5,12 @@ const defaults = {
   debug: false,
   loose: false,
   modules: false,
+  useBuiltIns: true,
   targets: {
     uglify: true,
     browsers: ['> .5% in US', 'last 1 versions'],
   },
-  exclude: ['transform-regenerator', 'transform-async-to-generator'],
-  useBuiltIns: true
+  exclude: ['transform-regenerator', 'transform-async-to-generator']
 };
 
 module.exports = function(context, opts = {}) {
@@ -45,6 +45,7 @@ module.exports = function(context, opts = {}) {
           useBuiltIns: true,
         },
       ],
+      require.resolve('babel-plugin-transform-export-extensions'),
       // Transforms JSX - Added so object-rest-spread in JSX uses builtIn
       [
         require.resolve('babel-plugin-transform-react-jsx'),

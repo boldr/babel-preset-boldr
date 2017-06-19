@@ -29,9 +29,8 @@ module.exports = function(context, opts = {}) {
           spec: true,
         },
       ],
-      // class { handleClick = () => { } }
       require.resolve('babel-plugin-transform-class-properties'),
-      // { ...param, completed: true }
+      require.resolve('babel-plugin-transform-export-extensions'),
       [
         require.resolve('babel-plugin-transform-object-rest-spread'),
         {
@@ -39,7 +38,6 @@ module.exports = function(context, opts = {}) {
         },
       ],
       require.resolve('babel-plugin-transform-decorators-legacy'),
-
       require.resolve('babel-plugin-dynamic-import-node'),
     ],
   };
