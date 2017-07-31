@@ -1,45 +1,78 @@
 # babel-preset-boldr
 
-Babel preset for [Boldr](https://github.com/strues/boldr)
+Babel preset for [Boldr](https://github.com/strues/boldr).   
+
+`babel-plugin-universal-import` and `babel-plugin-styled-components` are included and enabled by default. If you don't need them,
+they can be disabled by passing `universal: false` and/or `styled: false` to the preset's options.
+
+
+### Options
+```javascript
+const defaults = {
+  // log output to the console
+  verbose: false,
+  // es modules enabled/disabled -- accepts: commonjs, false, umd, etc
+  modules: false,
+  // Prefer built-ins over custom code. This mainly benefits for modern engines.
+  useBuiltIns: true,
+  // Whether to enable source map output
+  sourceMaps: true,
+  // Enable full compression on production scripts or basic compression for libraries or during development.
+  compression: false,
+  // Keeping comments to be compatible with Webpack's magic comments
+  comments: true,
+  // Do not apply general minification by default
+  minified: true,
+  // Env Settings
+  looseMode: true,
+  specMode: false,
+  // transform-runtime
+  // -- generators
+  regen: false,
+  // -- helpers
+  rtHelpers: false,
+  // -- require polyfill
+  polyfill: false,
+  // fast async
+  // -- transpile using spec helpers -- no run time required, but slower.
+  // --- !!! MUST be false if nodentRt is true
+  faSpecMode: true,
+  // -- use nodent runtime for async/await - much faster than babel
+  nodentRt: false,
+  targets: {
+    uglify: true,
+    browsers: 'last 2 versions',
+  },
+  exclude: ['transform-regenerator', 'transform-async-to-generator'],
+  // Lodash Plugin Settings
+  lodashInc: ['lodash', 'async', 'ramda', 'recompose'],
+  styled: true,
+  universal: true,
+}
+```
 
 **Browser default options**:    
 ```json
-{
-  "debug": false,
-  "loose": false,
-  "modules": false,
-  "targets": {
-    "uglify": true,
-    "browsers": ["> .5% in US", "last 1 versions"],
-  },
-  "exclude": ["transform-regenerator", "transform-async-to-generator"],
-  "useBuiltIns": true
-},
+[
+  ["boldr", {
+    "verbose": false,
+    "modules": false,
+    "useBuiltIns": true,
+    "targets": { "browsers": "last 2 versions"}
+  }]
+]
 ```
 
 **Node default options**:   
 ```json
-{
-  "debug": false,
-  "loose": false,
-  "modules": false,
-  "targets": {
-    "node": 8,
-  },
-  "exclude": ["transform-regenerator", "transform-async-to-generator"],
-  "useBuiltIns": true
-},
-```
-
-**Modifying the options**:    
-```json
-{
-  "presets": [["boldr/node", {
-    "targets": {
-      "node": 7
-    }
-    }]]
-}
+[
+  ["boldr", {
+    "verbose": false,
+    "modules": false,
+    "useBuiltIns": true,
+    "targets": { "node": "current"}
+  }]
+]
 ```
 
 **Included Presets:**
