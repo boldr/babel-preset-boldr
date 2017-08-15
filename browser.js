@@ -13,7 +13,7 @@ const defaults = {
   // Keeping comments to be compatible with Webpack's magic comments
   comments: true,
   // Do not apply general minification by default
-  minified: true,
+  minified: false,
   // Env Settings
   looseMode: true,
   specMode: false,
@@ -21,7 +21,7 @@ const defaults = {
   // -- generators
   regen: false,
   // -- helpers
-  rtHelpers: false,
+  rtHelpers: true,
   // -- require polyfill
   polyfill: false,
   // fast async
@@ -32,7 +32,14 @@ const defaults = {
   nodentRt: false,
   targets: {
     uglify: true,
-    browsers: 'last 2 versions',
+    browsers: [
+      "Safari >= 10.1",
+      "iOS >= 10.3",
+      "Edge >= 15",
+      "Chrome >= 59",
+      "ChromeAndroid >= 59",
+      "Firefox >= 53"
+    ]
   },
   exclude: ['transform-regenerator', 'transform-async-to-generator'],
   // Lodash Plugin Settings
@@ -171,18 +178,14 @@ module.exports = function(context, opts = {}) {
     config.plugins.push(require.resolve('babel-plugin-universal-import'));
   }
   if (isProduction) {
-    config.presets.push([
-      require.resolve('babel-preset-babili'),
-      {
-        booleans: false,
-        deadcode: false,
-        infinity: false,
-        mangle: false,
-        flipComparisons: false,
-        replace: false,
-        simplify: false,
-      },
-    ]);
+    config.presets.push([require.resolve('babel-preset-minify'), {
+      booleans: false,
+      infinity: false,
+      mangle: false,
+      flipComparisons: false,
+      replace: false,
+      simplify: false
+    }]);
     config.plugins.push(
       // TRANSFORM REACT REMOVE PROP TYPES
       // -----------------------------------------------------------------------------

@@ -22,7 +22,7 @@ const defaults = {
   // -- generators
   regen: false,
   // -- helpers
-  rtHelpers: false,
+  rtHelpers: true,
   // -- require polyfill
   polyfill: false,
   // fast async
@@ -32,7 +32,7 @@ const defaults = {
   // -- use nodent runtime for async/await - much faster than babel
   nodentRt: false,
   targets: {
-    node: 'current',
+    node: '8.3.0',
   },
   exclude: ['transform-regenerator', 'transform-async-to-generator'],
   // Lodash Plugin Settings
@@ -174,18 +174,14 @@ module.exports = function(context, opts = {}) {
     config.plugins.push(require.resolve('babel-plugin-universal-import'));
   }
   if (isProduction) {
-    config.presets.push([
-      require.resolve('babel-preset-babili'),
-      {
-        booleans: false,
-        deadcode: false,
-        infinity: false,
-        mangle: false,
-        flipComparisons: false,
-        replace: false,
-        simplify: false,
-      },
-    ]);
+    config.presets.push([require.resolve('babel-preset-minify'), {
+      booleans: false,
+      infinity: false,
+      mangle: false,
+      flipComparisons: false,
+      replace: false,
+      simplify: false
+    }]);
     config.plugins.push(
       // TRANSFORM REACT REMOVE PROP TYPES
       // -----------------------------------------------------------------------------
