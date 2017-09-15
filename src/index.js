@@ -1,12 +1,14 @@
 import path from 'path';
+import { get as getAppRoot } from 'app-root-dir';
+import fastAsync from 'fast-async';
+import browserslist from 'browserslist';
+
 import envPreset, { isPluginRequired } from 'babel-preset-env';
 import getTargets from 'babel-preset-env/lib/targets-parser';
 import envPlugins from 'babel-preset-env/data/plugins.json';
 import minifyPreset from 'babel-preset-minify';
 import moduleResolver from 'babel-plugin-module-resolver';
-import { get as getAppRoot } from 'app-root-dir';
-import fastAsync from 'fast-async';
-import browserslist from 'browserslist';
+import deadCodeEliminationPlugin from 'babel-plugin-minify-dead-code-elimination';
 import transformClassProperties from 'babel-plugin-transform-class-properties';
 import transformObjectRestSpread from 'babel-plugin-transform-object-rest-spread';
 import transformFlowStripTypes from 'babel-plugin-transform-flow-strip-types';
@@ -20,17 +22,19 @@ import transformReactInlineElements from 'babel-plugin-transform-react-inline-el
 import transformReactConstantElements from 'babel-plugin-transform-react-constant-elements';
 import transformDecoratorsLegacy from 'babel-plugin-transform-decorators-legacy';
 import transformExportExtensions from 'babel-plugin-transform-export-extensions';
+import reactIntlPlugin from "babel-plugin-react-intl";
 import syntaxDecorators from 'babel-plugin-syntax-decorators';
 import syntaxFlow from 'babel-plugin-syntax-flow';
 import syntaxJsx from 'babel-plugin-syntax-jsx';
 import syntaxDynamicImport from 'babel-plugin-syntax-dynamic-import';
 import dynamicImportNode from 'babel-plugin-dynamic-import-node';
+import dynamicImportWebpack from 'babel-plugin-dynamic-import-webpack';
 import universalImport from 'babel-plugin-universal-import';
 import styledComponents from 'babel-plugin-styled-components';
 import lodashPlugin from 'babel-plugin-lodash';
 
 const targetModern = {
-  node: '8.3.0',
+  node: '8.4.0',
   browsers: [
     'Safari >= 10.1',
     'iOS >= 10.3',
@@ -44,7 +48,16 @@ const targetModern = {
 const defaults = {
   // print explainations to console
   verbose: false,
-
+  // One of the following:
+  // - "node"/nodejs"/"script"/"binary": any NodeJS related execution with wide support to last LTS aka 6.9.0
+  // - "node8": identical to the previous option but target Node v8.0.0 (next LTS) - planned for October 2017
+  // - "current"/"test": current NodeJS version
+  // - "browser"/"web": browsers as defined by browserslist
+  // - "library": ideally used for publishing libraries e.g. on NPM
+  // - "es2015": same as "library" but targets es2o15 capable engines only.
+  // - "modern": same as "library" but targets modern engines only (slightly more forward-looking than es2015).
+  // - {}: any custom settings support by Env-Preset
+  target: 'nodejs',
   // Choose automatically depending on target or use one of these for full control:
   // - "commonjs": Transpile module imports to commonjs
   // - false: Keep module imports as is (e.g. protecting ESM for optiomal usage with Webpack)
@@ -57,16 +70,7 @@ const defaults = {
   env: 'auto',
   // Whether to enable source map output
   sourceMaps: true,
-  // One of the following:
-  // - "node"/nodejs"/"script"/"binary": any NodeJS related execution with wide support to last LTS aka 6.9.0
-  // - "node8": identical to the previous option but target Node v8.0.0 (next LTS) - planned for October 2017
-  // - "current"/"test": current NodeJS version
-  // - "browser"/"web": browsers as defined by browserslist
-  // - "library": ideally used for publishing libraries e.g. on NPM
-  // - "es2015": same as "library" but targets es2o15 capable engines only.
-  // - "modern": same as "library" but targets modern engines only (slightly more forward-looking than es2015).
-  // - {}: any custom settings support by Env-Preset
-  target: 'nodejs',
+
   // Enable full compression on production scripts or basic compression for libraries or during development.
   compression: false,
   // Keeping comments to be compatible with Webpack's magic comments
@@ -104,6 +108,7 @@ const defaults = {
   lodashInc: ['lodash', 'async', 'ramda', 'recompose'],
   styled: true,
   styledProcess: false,
+  enableIntl: false,
 };
 
 export default function generatePreset(context, opts = {}) {
@@ -117,6 +122,7 @@ export default function generatePreset(context, opts = {}) {
   if (opts.env === 'auto') {
     opts.env = null;
   }
+
   const CURRENT_ENV = opts.env || process.env.BABEL_ENV || process.env.NODE_ENV || 'development';
   const IS_PROD = /\bproduction\b/.test(CURRENT_ENV);
 
@@ -148,7 +154,7 @@ export default function generatePreset(context, opts = {}) {
   let envTargets = {};
 
   if (targetBinary) {
-    envTargets.node = options.target === 'node8' ? '8.3.0' : '6.11.1';
+    envTargets.node = options.target === 'node8' ? '8.4.0' : '6.11.1';
   } else if (targetCurrent) {
     // Scripts which are directly used like tests can be transpiled for the current NodeJS version
     envTargets.node = 'current';
@@ -284,7 +290,10 @@ export default function generatePreset(context, opts = {}) {
         },
       ]);
     }
+  } else {
+    plugins.push(deadCodeEliminationPlugin);
   }
+
   presets.push([
     envPreset,
     {
@@ -324,6 +333,16 @@ export default function generatePreset(context, opts = {}) {
 
     // Compiles import() to a deferred require() for NodeJS
     plugins.push(dynamicImportNode);
+  } else if (options.imports === 'rollup-webpack') {
+    if (options.verbose) {
+      console.log('- Rewriting import() for Rollup bundling targeting Webpack.');
+    }
+
+    // This is our alternative appeoach for now which "protects" these imports from Rollup
+    // for usage in Webpack later on (not directly). In detail it transpiles `import()` to
+    // `require.ensure()` before it reaches RollupJS's bundling engine.
+    // https://github.com/airbnb/babel-plugin-dynamic-import-webpack
+    plugins.push(dynamicImportWebpack);
   } else if (options.imports === 'webpack') {
     if (options.verbose) {
       console.log('- Rewriting import() for Universal Webpack.');
@@ -345,7 +364,6 @@ export default function generatePreset(context, opts = {}) {
     plugins.push([
       moduleResolver,
       {
-        root: [path.resolve(getAppRoot(), options.srcDir)],
         alias: {
           '@': path.resolve(getAppRoot(), options.srcDir),
         },
@@ -358,7 +376,7 @@ export default function generatePreset(context, opts = {}) {
   // -----------------------------------------------------------------------------
   // --- Implements the ES7 keywords async and await using syntax transformation at compile-time, rather than generators.
   // --- https://www.npmjs.com/package/fast-async
-  if (options.rewriteAsync) {
+  if (options.rewriteAsync === 'promises') {
     plugins.push([
       fastAsync,
       {
@@ -433,6 +451,10 @@ export default function generatePreset(context, opts = {}) {
         removeImport: true,
       },
     ]);
+    if (options.enableIntl) {
+        // Cleanup descriptions for translations from compilation output
+        plugins.push(reactIntlPlugin)
+    }
     // TRANSFORM REACT INLINE ELEMENTS:
     // -----------------------------------------------------------------------------
     // --- https://babeljs.io/docs/plugins/transform-react-inline-elements/
